@@ -1,10 +1,9 @@
 {
     "name": "leigh-osu/osu_cas_legacy_link",
-    "description": "Provides a block that will offer a link to the original migrated nodes in the old site.",
-    "type": "drupal-custom-module",
+    "description": "OSU CAS legacy link module",
+    "type": "drupal-module",
     "license": "GPL-2.0-or-later",
     "require": {
-        "php": ">=8.1",
-        "drupal/externalauth": "^2.0"
+        "drupal/core": "^10 || ^11"
     }
 }
