@@ -1,0 +1,5 @@
+legacy_link:
+  version: 1.x
+  css:
+    component:
+      css/osu-cas-legacy-link.css: {}

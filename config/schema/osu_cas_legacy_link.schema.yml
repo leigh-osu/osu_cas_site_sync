@@ -1,0 +1,13 @@
+block.settings.osu_cas_legacy_link:
+  type: block_settings
+  label: 'Legacy site link block'
+  mapping:
+    base_url:
+      type: uri
+      label: 'Legacy site base URL'
+    link_text:
+      type: label
+      label: 'Link text'
+    open_in_new_tab:
+      type: boolean
+      label: 'Open link in a new tab'
