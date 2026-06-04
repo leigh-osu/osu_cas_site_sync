@@ -150,11 +150,10 @@ class LegacyLinkBlock extends BlockBase implements ContainerFactoryPluginInterfa
       '#attributes' => [
         'class' => ['osu-cas-legacy-link'],
       ],
+      '#attached' => [
+        'library' => ['osu_cas_legacy_link/legacy_link'],
+      ],
     ];
-
-    if (!empty($config['open_in_new_tab'])) {
-      $build['#attached']['library'][] = 'osu_cas_legacy_link/legacy_link';
-    }
 
     return $build;
   }

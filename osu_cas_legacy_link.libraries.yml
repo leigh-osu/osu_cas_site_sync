@@ -3,3 +3,8 @@ legacy_link:
   css:
     component:
       css/osu-cas-legacy-link.css: {}
+  js:
+    js/osu-cas-legacy-link.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
