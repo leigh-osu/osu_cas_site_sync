@@ -10,6 +10,8 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Url;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -58,14 +60,22 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
   protected $domainNegotiator;
 
   /**
+   * The entity type manager.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  protected $entityTypeManager;
+
+  /**
    * Constructs a new SiteSyncBlock.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, RouteMatchInterface $route_match, RequestStack $request_stack, StorageInterface $config_storage, $domain_negotiator) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, RouteMatchInterface $route_match, RequestStack $request_stack, StorageInterface $config_storage, $domain_negotiator, EntityTypeManagerInterface $entity_type_manager) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->routeMatch = $route_match;
     $this->requestStack = $request_stack;
     $this->configStorage = $config_storage;
     $this->domainNegotiator = $domain_negotiator;
+    $this->entityTypeManager = $entity_type_manager;
   }
 
   /**
@@ -79,7 +89,8 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
       $container->get('current_route_match'),
       $container->get('request_stack'),
       $container->get('config.storage'),
-      $container->has('domain.negotiator') ? $container->get('domain.negotiator') : NULL
+      $container->has('domain.negotiator') ? $container->get('domain.negotiator') : NULL,
+      $container->get('entity_type.manager')
     );
   }
 
@@ -167,11 +178,22 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
       $nid = $node->id();
     }
 
+    $node_types = [];
+    foreach ($this->entityTypeManager->getStorage('node_type')->loadMultiple() as $node_type) {
+      $node_types[$node_type->id()] = $node_type->label();
+    }
+    asort($node_types);
+
     return [
       '#theme' => 'osu_cas_site_sync',
       '#url' => $url,
       '#nid' => $nid,
       '#link_text' => $this->getConfiguration()['link_text'],
+      '#node_types' => $node_types,
+      '#step_url' => Url::fromRoute('osu_cas_site_sync.step')->toString(),
+      '#cache' => [
+        'tags' => ['config:node_type_list'],
+      ],
       '#attached' => [
         'library' => ['osu_cas_site_sync/site_sync'],
       ],

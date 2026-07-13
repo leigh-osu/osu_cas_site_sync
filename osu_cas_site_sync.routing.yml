@@ -1,0 +1,7 @@
+osu_cas_site_sync.step:
+  path: '/osu-cas-site-sync/step'
+  defaults:
+    _controller: '\Drupal\osu_cas_site_sync\Controller\SlideshowController::step'
+    _title: 'Site sync slideshow'
+  requirements:
+    _permission: 'use osu cas site sync'

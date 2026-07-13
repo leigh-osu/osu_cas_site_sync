@@ -13,6 +13,7 @@
   'use strict';
 
   const STORAGE_KEY = 'osuCasSiteSync.enabled';
+  const TYPE_KEY = 'osuCasSiteSync.slideshowType';
   const WINDOW_NAME = 'osuCasProdSync';
 
   /**
@@ -90,6 +91,33 @@
             catch (e) { /* noop */ }
           }
         });
+
+        // Slideshow: step to the adjacent node of the selected type. The
+        // server resolves the next/previous nid and redirects to its alias;
+        // with sync enabled the new page then re-targets the prod window.
+        const typeSelect = el.querySelector('.osu-cas-site-sync__slideshow-type');
+        if (typeSelect) {
+          const savedType = localStorage.getItem(TYPE_KEY);
+          if (savedType && typeSelect.querySelector('option[value="' + CSS.escape(savedType) + '"]')) {
+            typeSelect.value = savedType;
+          }
+          typeSelect.addEventListener('change', function () {
+            localStorage.setItem(TYPE_KEY, typeSelect.value);
+          });
+
+          const step = function (dir) {
+            const params = new URLSearchParams({
+              dir: dir,
+              type: typeSelect.value,
+              from: el.dataset.siteSyncNid || ''
+            });
+            window.location.assign(el.dataset.siteSyncStep + '?' + params.toString());
+          };
+          el.querySelector('.osu-cas-site-sync__slideshow-prev')
+            .addEventListener('click', function () { step('prev'); });
+          el.querySelector('.osu-cas-site-sync__slideshow-next')
+            .addEventListener('click', function () { step('next'); });
+        }
 
         // Plain click sends the prod page to the same side-by-side window.
         link.addEventListener('click', function (event) {

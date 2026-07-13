@@ -7,9 +7,14 @@
  * - url: The full URL to this page's counterpart on the production site.
  * - nid: The node ID, when the current page is a node page.
  * - link_text: The text to display for the link.
+ * - node_types: Node type labels keyed by machine name, for the slideshow.
+ * - step_url: The slideshow step route URL.
  */
 #}
-<div class="osu-cas-site-sync" data-site-sync-url="{{ url }}">
+<div class="osu-cas-site-sync"
+     data-site-sync-url="{{ url }}"
+     data-site-sync-step="{{ step_url }}"
+     data-site-sync-nid="{{ nid }}">
   <a class="osu-cas-site-sync__link" href="{{ url }}" target="_blank">
     {{- link_text -}}
     {% if nid %} <span class="osu-cas-site-sync__nid">(node/{{ nid }})</span>{% endif %}
@@ -18,6 +23,19 @@
     <input type="checkbox" class="osu-cas-site-sync__checkbox">
     {{ 'Sync with Prod'|t }}
   </label>
+  <span class="osu-cas-site-sync__slideshow">
+    <label class="osu-cas-site-sync__slideshow-label">
+      {{ 'Slideshow'|t }}
+      <select class="osu-cas-site-sync__slideshow-type">
+        <option value="all">{{ 'All Nodes'|t }}</option>
+        {% for id, label in node_types %}
+          <option value="{{ id }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="button" class="osu-cas-site-sync__slideshow-prev" title="{{ 'Previous node'|t }}" aria-label="{{ 'Previous node'|t }}">&#9664;</button>
+    <button type="button" class="osu-cas-site-sync__slideshow-next" title="{{ 'Next node'|t }}" aria-label="{{ 'Next node'|t }}">&#9654;</button>
+  </span>
   <span class="osu-cas-site-sync__hint" hidden>
     {{ 'Allow pop-ups for this site so pages can auto-sync.'|t }}
   </span>

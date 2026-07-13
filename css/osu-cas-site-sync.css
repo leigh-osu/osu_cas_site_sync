@@ -43,3 +43,40 @@
   color: #a33;
   font-size: 0.85em;
 }
+
+.osu-cas-site-sync__slideshow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.osu-cas-site-sync__slideshow-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: #1a1a1a;
+}
+
+.osu-cas-site-sync__slideshow-type {
+  max-width: 14rem;
+  padding: 0.1rem 0.25rem;
+  font-size: 0.9em;
+}
+
+.osu-cas-site-sync__slideshow-prev,
+.osu-cas-site-sync__slideshow-next {
+  padding: 0.1rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background-color: #fff;
+  color: #1a1a1a;
+  font-size: 0.8em;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.osu-cas-site-sync__slideshow-prev:hover,
+.osu-cas-site-sync__slideshow-next:hover {
+  background-color: #e8e8e3;
+}
