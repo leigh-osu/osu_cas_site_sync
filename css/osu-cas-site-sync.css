@@ -80,3 +80,56 @@
 .osu-cas-site-sync__slideshow-next:hover {
   background-color: #e8e8e3;
 }
+
+/* Vertical rules between the three features (link | sync | slideshow). */
+.osu-cas-site-sync__feature + .osu-cas-site-sync__feature {
+  border-left: 3px solid #d73f09; /* OSU orange, match the block edge */
+  padding-left: 1.25rem;
+}
+
+/* Small screens: one feature per line, breaking exactly at the separators,
+   which become horizontal rules. */
+@media (max-width: 48em) {
+  .osu-cas-site-sync {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .osu-cas-site-sync__feature + .osu-cas-site-sync__feature {
+    border-left: 0;
+    border-top: 3px solid #d73f09;
+    padding-left: 0;
+    padding-top: 0.5rem;
+  }
+}
+
+.osu-cas-site-sync__nid-copy {
+  position: relative;
+  text-decoration: none;
+  color: #1a1a1a;
+  white-space: nowrap;
+}
+
+.osu-cas-site-sync__nid-copy:hover {
+  text-decoration: underline;
+}
+
+.osu-cas-site-sync__nid-copy.is-copied::after {
+  content: "copied";
+  position: absolute;
+  top: -1.4em;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.05em 0.45em;
+  border-radius: 3px;
+  background-color: #1a1a1a;
+  color: #fff;
+  font-size: 0.75em;
+}
+
+.osu-cas-site-sync__slideshow-prev:disabled,
+.osu-cas-site-sync__slideshow-next:disabled {
+  opacity: 0.35;
+  background-color: #f0f0eb;
+  cursor: default;
+}

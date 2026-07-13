@@ -15,17 +15,36 @@
      data-site-sync-url="{{ url }}"
      data-site-sync-step="{{ step_url }}"
      data-site-sync-nid="{{ nid }}">
-  <a class="osu-cas-site-sync__link" href="{{ url }}" target="_blank">
-    {{- link_text -}}
-    {% if nid %} <span class="osu-cas-site-sync__nid">(node/{{ nid }})</span>{% endif %}
-  </a>
-  <label class="osu-cas-site-sync__toggle">
+  {% if nid %}
+    <a href="#" class="osu-cas-site-sync__nid-copy osu-cas-site-sync__feature" title="{{ 'Copy the node ID'|t }}">
+      NID <span class="osu-cas-site-sync__nid">{{ nid }}</span>
+    </a>
+  {% endif %}
+  <a class="osu-cas-site-sync__link osu-cas-site-sync__feature" href="{{ url }}" target="_blank">{{ link_text }}</a>
+  <label class="osu-cas-site-sync__toggle osu-cas-site-sync__feature">
     <input type="checkbox" class="osu-cas-site-sync__checkbox">
     {{ 'Sync with Prod'|t }}
   </label>
-  <span class="osu-cas-site-sync__slideshow">
+  <span class="osu-cas-site-sync__slideshow osu-cas-site-sync__feature">
     <label class="osu-cas-site-sync__slideshow-label">
       {{ 'Slideshow'|t }}
+      <select class="osu-cas-site-sync__slideshow-site">
+        <option value="all">{{ 'All Sites'|t }}</option>
+        {% if site_domains %}
+          <optgroup label="{{ 'Domains'|t }}">
+            {% for id, label in site_domains %}
+              <option value="domain:{{ id }}">{{ label }}</option>
+            {% endfor %}
+          </optgroup>
+        {% endif %}
+        {% if site_groups %}
+          <optgroup label="{{ 'Groups'|t }}">
+            {% for id, label in site_groups %}
+              <option value="group:{{ id }}" title="{{ label }}">{{ label|length > 20 ? label|slice(0, 20)|trim ~ '…' : label }}</option>
+            {% endfor %}
+          </optgroup>
+        {% endif %}
+      </select>
       <select class="osu-cas-site-sync__slideshow-type">
         <option value="all">{{ 'All Nodes'|t }}</option>
         {% for id, label in node_types %}

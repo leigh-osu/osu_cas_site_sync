@@ -14,6 +14,8 @@
 
   const STORAGE_KEY = 'osuCasSiteSync.enabled';
   const TYPE_KEY = 'osuCasSiteSync.slideshowType';
+  const SITE_KEY = 'osuCasSiteSync.slideshowSite';
+  const SYNCED_KEY = 'osuCasSiteSync.lastSynced';
   const WINDOW_NAME = 'osuCasProdSync';
 
   /**
@@ -60,10 +62,18 @@
         checkbox.checked = localStorage.getItem(STORAGE_KEY) === '1';
 
         // Sync is on: re-target the prod window at this page's counterpart.
+        // Skip when the slideshow already pointed the window here within the
+        // triggering click (see step below) — and note that without a user
+        // gesture this open only succeeds when pop-ups are allowed.
         if (checkbox.checked) {
-          const w = openSyncWindow(url);
-          if (!w) {
-            hint.hidden = false;
+          if (sessionStorage.getItem(SYNCED_KEY) === url) {
+            sessionStorage.removeItem(SYNCED_KEY);
+          }
+          else {
+            const w = openSyncWindow(url);
+            if (!w) {
+              hint.hidden = false;
+            }
           }
         }
 
@@ -92,10 +102,36 @@
           }
         });
 
+        // NID chip: click copies the node id to the clipboard.
+        const nidCopy = el.querySelector('.osu-cas-site-sync__nid-copy');
+        if (nidCopy) {
+          nidCopy.addEventListener('click', function (event) {
+            event.preventDefault();
+            const nid = el.dataset.siteSyncNid;
+            const done = function () {
+              nidCopy.classList.add('is-copied');
+              setTimeout(function () { nidCopy.classList.remove('is-copied'); }, 1200);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(nid).then(done, function () { /* noop */ });
+            }
+            else {
+              // Insecure-context fallback.
+              const tmp = document.createElement('textarea');
+              tmp.value = nid;
+              document.body.appendChild(tmp);
+              tmp.select();
+              try { document.execCommand('copy'); done(); } catch (e) { /* noop */ }
+              tmp.remove();
+            }
+          });
+        }
+
         // Slideshow: step to the adjacent node of the selected type. The
         // server resolves the next/previous nid and redirects to its alias;
         // with sync enabled the new page then re-targets the prod window.
         const typeSelect = el.querySelector('.osu-cas-site-sync__slideshow-type');
+        const siteSelect = el.querySelector('.osu-cas-site-sync__slideshow-site');
         if (typeSelect) {
           const savedType = localStorage.getItem(TYPE_KEY);
           if (savedType && typeSelect.querySelector('option[value="' + CSS.escape(savedType) + '"]')) {
@@ -104,19 +140,73 @@
           typeSelect.addEventListener('change', function () {
             localStorage.setItem(TYPE_KEY, typeSelect.value);
           });
+          if (siteSelect) {
+            const savedSite = localStorage.getItem(SITE_KEY);
+            if (savedSite && siteSelect.querySelector('option[value="' + CSS.escape(savedSite) + '"]')) {
+              siteSelect.value = savedSite;
+            }
+            siteSelect.addEventListener('change', function () {
+              localStorage.setItem(SITE_KEY, siteSelect.value);
+            });
+          }
 
+          const prevBtn = el.querySelector('.osu-cas-site-sync__slideshow-prev');
+          const nextBtn = el.querySelector('.osu-cas-site-sync__slideshow-next');
+
+          // Grey the arrows when the current selection matches no nodes at
+          // all (stepping wraps, so any non-empty selection is navigable).
+          const updateArrows = function () {
+            const params = new URLSearchParams({
+              dir: 'next',
+              type: typeSelect.value,
+              site: siteSelect ? siteSelect.value : 'all',
+              from: '',
+              respond: 'json'
+            });
+            fetch(el.dataset.siteSyncStep + '?' + params.toString(), { credentials: 'same-origin' })
+              .then(function (response) { return response.json(); })
+              .then(function (data) {
+                prevBtn.disabled = nextBtn.disabled = !data.url;
+              })
+              .catch(function () { /* leave the arrows as they are */ });
+          };
+          updateArrows();
+          typeSelect.addEventListener('change', updateArrows);
+          if (siteSelect) {
+            siteSelect.addEventListener('change', updateArrows);
+          }
+
+          // Resolve the destination first, then point the prod window at it
+          // while still inside the click's user gesture (a page-load
+          // window.open would be pop-up blocked), then navigate locally.
           const step = function (dir) {
             const params = new URLSearchParams({
               dir: dir,
               type: typeSelect.value,
-              from: el.dataset.siteSyncNid || ''
+              site: siteSelect ? siteSelect.value : 'all',
+              from: el.dataset.siteSyncNid || '',
+              respond: 'json'
             });
-            window.location.assign(el.dataset.siteSyncStep + '?' + params.toString());
+            fetch(el.dataset.siteSyncStep + '?' + params.toString(), { credentials: 'same-origin' })
+              .then(function (response) { return response.json(); })
+              .then(function (data) {
+                if (!data.url) {
+                  return;
+                }
+                if (checkbox.checked) {
+                  const prodUrl = new URL(el.dataset.siteSyncUrl).origin + data.url;
+                  if (openSyncWindow(prodUrl)) {
+                    // Tell the destination page's load handler this URL is
+                    // already synced so it does not re-open the window.
+                    sessionStorage.setItem(SYNCED_KEY, prodUrl);
+                  }
+                }
+                window.location.assign(data.url);
+              })
+              .catch(function () { /* leave the page as-is on failure */ });
           };
-          el.querySelector('.osu-cas-site-sync__slideshow-prev')
-            .addEventListener('click', function () { step('prev'); });
-          el.querySelector('.osu-cas-site-sync__slideshow-next')
-            .addEventListener('click', function () { step('next'); });
+          prevBtn.addEventListener('click', function () { step('prev'); });
+          nextBtn.addEventListener('click', function () { step('next'); });
         }
 
         // Plain click sends the prod page to the same side-by-side window.

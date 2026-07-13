@@ -100,7 +100,7 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
   public function defaultConfiguration() {
     return [
       'base_url' => 'https://agsci.oregonstate.edu',
-      'link_text' => 'View this page on prod',
+      'link_text' => 'View D7',
     ] + parent::defaultConfiguration();
   }
 
@@ -184,15 +184,36 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
     }
     asort($node_types);
 
+    $site_domains = [];
+    if ($this->entityTypeManager->hasDefinition('domain')) {
+      foreach ($this->entityTypeManager->getStorage('domain')->loadMultiple() as $domain) {
+        // The raw config hostname is the recognisable prod name; the label
+        // is often a long site title.
+        $record = $this->configStorage->read('domain.record.' . $domain->id());
+        $site_domains[$domain->id()] = $record['hostname'] ?? $domain->label();
+      }
+      asort($site_domains);
+    }
+
+    $site_groups = [];
+    if ($this->entityTypeManager->hasDefinition('group')) {
+      foreach ($this->entityTypeManager->getStorage('group')->loadMultiple() as $group) {
+        $site_groups[$group->id()] = $group->label();
+      }
+      natcasesort($site_groups);
+    }
+
     return [
       '#theme' => 'osu_cas_site_sync',
       '#url' => $url,
       '#nid' => $nid,
       '#link_text' => $this->getConfiguration()['link_text'],
       '#node_types' => $node_types,
+      '#site_domains' => $site_domains,
+      '#site_groups' => $site_groups,
       '#step_url' => Url::fromRoute('osu_cas_site_sync.step')->toString(),
       '#cache' => [
-        'tags' => ['config:node_type_list'],
+        'tags' => ['config:node_type_list', 'config:domain_record_list', 'group_list'],
       ],
       '#attached' => [
         'library' => ['osu_cas_site_sync/site_sync'],
