@@ -30,6 +30,7 @@
       {{ 'Slideshow'|t }}
       <select class="osu-cas-site-sync__slideshow-site">
         <option value="all">{{ 'All Sites'|t }}</option>
+        <option value="affiliates">{{ 'All Affiliates'|t }}</option>
         {% if site_domains %}
           <optgroup label="{{ 'Domains'|t }}">
             {% for id, label in site_domains %}

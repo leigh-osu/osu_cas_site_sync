@@ -77,7 +77,11 @@ class SlideshowController extends ControllerBase {
     if ($type !== 'all') {
       $query->condition('type', $type);
     }
-    if (str_starts_with($site, 'domain:')) {
+    if ($site === 'affiliates') {
+      // Content flagged "send to all affiliates" (renders on every site).
+      $query->condition('field_domain_all_affiliates', 1);
+    }
+    elseif (str_starts_with($site, 'domain:')) {
       // Strictly the nodes assigned to the selected domain. "Send to all
       // affiliates" content is deliberately excluded — it renders on every
       // site, so including it would make each domain's list look the same

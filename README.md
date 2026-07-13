@@ -17,7 +17,7 @@ navigate.
   that page's production counterpart, opened on the right half of the screen
   for a side-by-side compare. The state persists per site in localStorage.
 - Clicking the link sends the prod page to the same side-by-side window.
-- **Slideshow** — two dropdowns ("All Sites" / a domain / a group, and
+- **Slideshow** — two dropdowns ("All Sites" / "All Affiliates" / a domain / a group, and
   "All Nodes" / a node type) with back/forward buttons. Each press navigates
   the local site to the previous or next node id in the selection
   (published, access-checked, wrapping at the ends). Domain selections
