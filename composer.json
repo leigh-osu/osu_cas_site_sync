@@ -1,6 +1,6 @@
 {
-    "name": "leigh-osu/osu_cas_legacy_link",
-    "description": "OSU CAS legacy link module",
+    "name": "leigh-osu/osu_cas_site_sync",
+    "description": "OSU CAS prod site sync module",
     "type": "drupal-custom-module",
     "license": "GPL-2.0-or-later",
     "require": {

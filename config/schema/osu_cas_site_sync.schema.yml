@@ -1,0 +1,10 @@
+block.settings.osu_cas_site_sync:
+  type: block_settings
+  label: 'Prod site sync block'
+  mapping:
+    base_url:
+      type: uri
+      label: 'Fallback production base URL'
+    link_text:
+      type: label
+      label: 'Link text'

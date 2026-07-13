@@ -1,0 +1,8 @@
+name: 'OSU CAS Site Sync'
+type: module
+description: 'Block linking the current page to its counterpart on the production site, with an optional synced side-by-side compare window.'
+package: 'OSU CAS'
+core_version_requirement: ^10 || ^11
+version: 1.0.0
+dependencies:
+  - drupal:block

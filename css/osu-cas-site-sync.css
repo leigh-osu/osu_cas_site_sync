@@ -1,0 +1,45 @@
+.osu-cas-site-sync {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1.25rem;
+  padding: 0.75rem 1rem;
+  background-color: #f5f5f0;
+  border-left: 3px solid #d73f09; /* OSU orange */
+  font-size: 0.9rem;
+}
+
+.osu-cas-site-sync__link {
+  text-decoration: none;
+  color: #1a1a1a;
+}
+
+.osu-cas-site-sync__link:hover {
+  text-decoration: underline;
+}
+
+.osu-cas-site-sync__nid {
+  color: #666;
+  font-family: monospace;
+  font-size: 0.85em;
+  margin-left: 0.25rem;
+}
+
+.osu-cas-site-sync__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  cursor: pointer;
+  color: #1a1a1a;
+  user-select: none;
+}
+
+.osu-cas-site-sync__toggle input {
+  margin: 0;
+}
+
+.osu-cas-site-sync__hint {
+  color: #a33;
+  font-size: 0.85em;
+}

@@ -1,0 +1,24 @@
+{#
+/**
+ * @file
+ * Default theme implementation for the prod site sync block.
+ *
+ * Available variables:
+ * - url: The full URL to this page's counterpart on the production site.
+ * - nid: The node ID, when the current page is a node page.
+ * - link_text: The text to display for the link.
+ */
+#}
+<div class="osu-cas-site-sync" data-site-sync-url="{{ url }}">
+  <a class="osu-cas-site-sync__link" href="{{ url }}" target="_blank">
+    {{- link_text -}}
+    {% if nid %} <span class="osu-cas-site-sync__nid">(node/{{ nid }})</span>{% endif %}
+  </a>
+  <label class="osu-cas-site-sync__toggle">
+    <input type="checkbox" class="osu-cas-site-sync__checkbox">
+    {{ 'Sync with Prod'|t }}
+  </label>
+  <span class="osu-cas-site-sync__hint" hidden>
+    {{ 'Allow pop-ups for this site so pages can auto-sync.'|t }}
+  </span>
+</div>

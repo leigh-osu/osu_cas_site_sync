@@ -1,10 +1,10 @@
-legacy_link:
+site_sync:
   version: 1.x
   css:
     component:
-      css/osu-cas-legacy-link.css: {}
+      css/osu-cas-site-sync.css: {}
   js:
-    js/osu-cas-legacy-link.js: {}
+    js/osu-cas-site-sync.js: {}
   dependencies:
     - core/drupal
     - core/once

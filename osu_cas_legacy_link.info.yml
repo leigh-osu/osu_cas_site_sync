@@ -1,9 +1,0 @@
-name: 'OSU CAS Legacy Link'
-type: module
-description: 'Provides a block linking from a migrated node to its counterpart on the legacy Drupal 7 site.'
-package: 'OSU CAS'
-core_version_requirement: ^10 || ^11
-version: 1.0.03
-dependencies:
-  - drupal:node
-  - drupal:block

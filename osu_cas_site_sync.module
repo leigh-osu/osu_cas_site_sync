@@ -1,0 +1,22 @@
+<?php
+
+/**
+ * @file
+ * Hook implementations for the OSU CAS Site Sync module.
+ */
+
+/**
+ * Implements hook_theme().
+ */
+function osu_cas_site_sync_theme($existing, $type, $theme, $path) {
+  return [
+    'osu_cas_site_sync' => [
+      'variables' => [
+        'url' => NULL,
+        'nid' => NULL,
+        'link_text' => NULL,
+      ],
+      'template' => 'osu-cas-site-sync',
+    ],
+  ];
+}

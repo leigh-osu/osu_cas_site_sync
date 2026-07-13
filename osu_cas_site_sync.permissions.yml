@@ -1,0 +1,3 @@
+use osu cas site sync:
+  title: 'Use the prod site sync block'
+  description: 'View the prod counterpart link and the "Sync with Prod" compare window toggle.'
