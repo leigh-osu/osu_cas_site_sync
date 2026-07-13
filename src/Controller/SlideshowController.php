@@ -21,15 +21,21 @@ class SlideshowController extends ControllerBase {
    * Redirects to the next/previous node of the selected type.
    */
   public function step(Request $request) {
-    $dir = $request->query->get('dir') === 'prev' ? 'prev' : 'next';
+    $dir = $request->query->get('dir');
+    $dir = in_array($dir, ['prev', 'random'], TRUE) ? $dir : 'next';
     $type = $request->query->get('type', 'all');
     $site = $request->query->get('site', 'all');
     $from = (int) $request->query->get('from', 0);
 
-    $nid = $this->queryStep($dir, $type, $site, $from);
-    if (!$nid && $from) {
-      // Past either end of the list: wrap around.
-      $nid = $this->queryStep($dir, $type, $site, 0);
+    if ($dir === 'random') {
+      $nid = $this->queryRandom($type, $site);
+    }
+    else {
+      $nid = $this->queryStep($dir, $type, $site, $from);
+      if (!$nid && $from) {
+        // Past either end of the list: wrap around.
+        $nid = $this->queryStep($dir, $type, $site, 0);
+      }
     }
 
     // The block's JS asks for JSON so it can point the prod sync window at
@@ -69,14 +75,71 @@ class SlideshowController extends ControllerBase {
    *   The adjacent nid, or NULL when there is none.
    */
   protected function queryStep(string $dir, string $type, string $site, int $from) {
+    $query = $this->buildQuery($type, $site);
+    if (!$query) {
+      return NULL;
+    }
+    $query->range(0, 1);
+
+    if ($dir === 'next') {
+      $query->sort('nid', 'ASC');
+      if ($from) {
+        $query->condition('nid', $from, '>');
+      }
+    }
+    else {
+      $query->sort('nid', 'DESC');
+      if ($from) {
+        $query->condition('nid', $from, '<');
+      }
+    }
+
+    $ids = $query->execute();
+    return $ids ? (int) reset($ids) : NULL;
+  }
+
+  /**
+   * Picks a random node id within the selection.
+   */
+  protected function queryRandom(string $type, string $site) {
+    $query = $this->buildQuery($type, $site);
+    if (!$query) {
+      return NULL;
+    }
+    $count = (int) (clone $query)->count()->execute();
+    if (!$count) {
+      return NULL;
+    }
+    $ids = $query->sort('nid', 'ASC')
+      ->range(random_int(0, $count - 1), 1)
+      ->execute();
+    return $ids ? (int) reset($ids) : NULL;
+  }
+
+  /**
+   * Builds the base node query for the type and site selection.
+   *
+   * @return \Drupal\Core\Entity\Query\QueryInterface|null
+   *   The filtered query, or NULL when the selection can match nothing.
+   */
+  protected function buildQuery(string $type, string $site) {
     $query = $this->entityTypeManager()->getStorage('node')->getQuery()
       ->accessCheck(TRUE)
-      ->condition('status', 1)
-      ->range(0, 1);
+      ->condition('status', 1);
 
-    if ($type !== 'all') {
+    if (str_starts_with($type, 'd7p:')) {
+      // Nodes holding blocks migrated from the selected D7 paragraph type.
+      $nids = \Drupal::service('osu_cas_site_sync.paragraph_map')
+        ->getNids(substr($type, 4));
+      if (!$nids) {
+        return NULL;
+      }
+      $query->condition('nid', $nids, 'IN');
+    }
+    elseif ($type !== 'all') {
       $query->condition('type', $type);
     }
+
     if ($site === 'affiliates') {
       // Content flagged "send to all affiliates" (renders on every site).
       $query->condition('field_domain_all_affiliates', 1);
@@ -98,21 +161,8 @@ class SlideshowController extends ControllerBase {
       }
       $query->condition('nid', $nids, 'IN');
     }
-    if ($dir === 'next') {
-      $query->sort('nid', 'ASC');
-      if ($from) {
-        $query->condition('nid', $from, '>');
-      }
-    }
-    else {
-      $query->sort('nid', 'DESC');
-      if ($from) {
-        $query->condition('nid', $from, '<');
-      }
-    }
 
-    $ids = $query->execute();
-    return $ids ? (int) reset($ids) : NULL;
+    return $query;
   }
 
 }

@@ -12,6 +12,7 @@ use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\osu_cas_site_sync\ParagraphMap;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -67,15 +68,23 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
   protected $entityTypeManager;
 
   /**
+   * The paragraph-to-node map.
+   *
+   * @var \Drupal\osu_cas_site_sync\ParagraphMap
+   */
+  protected $paragraphMap;
+
+  /**
    * Constructs a new SiteSyncBlock.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, RouteMatchInterface $route_match, RequestStack $request_stack, StorageInterface $config_storage, $domain_negotiator, EntityTypeManagerInterface $entity_type_manager) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, RouteMatchInterface $route_match, RequestStack $request_stack, StorageInterface $config_storage, $domain_negotiator, EntityTypeManagerInterface $entity_type_manager, ParagraphMap $paragraph_map) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->routeMatch = $route_match;
     $this->requestStack = $request_stack;
     $this->configStorage = $config_storage;
     $this->domainNegotiator = $domain_negotiator;
     $this->entityTypeManager = $entity_type_manager;
+    $this->paragraphMap = $paragraph_map;
   }
 
   /**
@@ -90,7 +99,8 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
       $container->get('request_stack'),
       $container->get('config.storage'),
       $container->has('domain.negotiator') ? $container->get('domain.negotiator') : NULL,
-      $container->get('entity_type.manager')
+      $container->get('entity_type.manager'),
+      $container->get('osu_cas_site_sync.paragraph_map')
     );
   }
 
@@ -184,6 +194,18 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
     }
     asort($node_types);
 
+    // D7 paragraph migrations: label shows how many nodes hold blocks
+    // migrated from that type.
+    $paragraph_types = [];
+    foreach ($this->paragraphMap->getMap() as $type => $nids) {
+      // Skip types whose blocks nothing references (e.g. paragraph_menu,
+      // whose migrated blocks were superseded by osu_menu_bar_item
+      // components) — a dead entry would only ever grey the arrows.
+      if ($nids) {
+        $paragraph_types[$type] = $type . ' (' . count($nids) . ')';
+      }
+    }
+
     $site_domains = [];
     if ($this->entityTypeManager->hasDefinition('domain')) {
       foreach ($this->entityTypeManager->getStorage('domain')->loadMultiple() as $domain) {
@@ -209,6 +231,7 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
       '#nid' => $nid,
       '#link_text' => $this->getConfiguration()['link_text'],
       '#node_types' => $node_types,
+      '#paragraph_types' => $paragraph_types,
       '#site_domains' => $site_domains,
       '#site_groups' => $site_groups,
       '#step_url' => Url::fromRoute('osu_cas_site_sync.step')->toString(),

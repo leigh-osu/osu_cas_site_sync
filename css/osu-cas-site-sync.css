@@ -65,7 +65,8 @@
 }
 
 .osu-cas-site-sync__slideshow-prev,
-.osu-cas-site-sync__slideshow-next {
+.osu-cas-site-sync__slideshow-next,
+.osu-cas-site-sync__slideshow-random {
   padding: 0.1rem 0.5rem;
   border: 1px solid #ccc;
   border-radius: 3px;
@@ -77,7 +78,8 @@
 }
 
 .osu-cas-site-sync__slideshow-prev:hover,
-.osu-cas-site-sync__slideshow-next:hover {
+.osu-cas-site-sync__slideshow-next:hover,
+.osu-cas-site-sync__slideshow-random:hover {
   background-color: #e8e8e3;
 }
 
@@ -128,7 +130,8 @@
 }
 
 .osu-cas-site-sync__slideshow-prev:disabled,
-.osu-cas-site-sync__slideshow-next:disabled {
+.osu-cas-site-sync__slideshow-next:disabled,
+.osu-cas-site-sync__slideshow-random:disabled {
   opacity: 0.35;
   background-color: #f0f0eb;
   cursor: default;

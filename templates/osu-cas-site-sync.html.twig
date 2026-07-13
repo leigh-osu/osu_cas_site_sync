@@ -51,10 +51,18 @@
         {% for id, label in node_types %}
           <option value="{{ id }}">{{ label }}</option>
         {% endfor %}
+        {% if paragraph_types %}
+          <optgroup label="{{ 'D7 Paragraphs'|t }}">
+            {% for id, label in paragraph_types %}
+              <option value="d7p:{{ id }}">{{ label }}</option>
+            {% endfor %}
+          </optgroup>
+        {% endif %}
       </select>
     </label>
     <button type="button" class="osu-cas-site-sync__slideshow-prev" title="{{ 'Previous node'|t }}" aria-label="{{ 'Previous node'|t }}">&#9664;</button>
     <button type="button" class="osu-cas-site-sync__slideshow-next" title="{{ 'Next node'|t }}" aria-label="{{ 'Next node'|t }}">&#9654;</button>
+    <button type="button" class="osu-cas-site-sync__slideshow-random" title="{{ 'Random node'|t }}" aria-label="{{ 'Random node'|t }}">?</button>
   </span>
   <span class="osu-cas-site-sync__hint" hidden>
     {{ 'Allow pop-ups for this site so pages can auto-sync.'|t }}

@@ -29,6 +29,15 @@ navigate.
   stepping.
 - **NID chip** — on node pages the line starts with the node id; clicking
   it copies the id to the clipboard.
+- **D7 Paragraphs filter** — the type dropdown also lists every D7 paragraph
+  migration (with a node count), stepping through the nodes that hold the
+  migrated blocks. A cached one-pass scan of the serialized layout sections
+  resolves block revisions back through each migrate map; container types
+  that became native sections (adjustable columns, picbox grids) resolve
+  through their field-collection child maps. Types with no reachable nodes
+  are omitted.
+- **Random** — a "?" button after the arrows jumps to a random node within
+  the current selection.
 
 Browsers only allow `window.open()` without a user gesture when pop-ups are
 permitted for the site — allow pop-ups on the local site for hands-free

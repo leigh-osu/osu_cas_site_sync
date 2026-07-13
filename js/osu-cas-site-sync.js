@@ -152,6 +152,7 @@
 
           const prevBtn = el.querySelector('.osu-cas-site-sync__slideshow-prev');
           const nextBtn = el.querySelector('.osu-cas-site-sync__slideshow-next');
+          const randomBtn = el.querySelector('.osu-cas-site-sync__slideshow-random');
 
           // Grey the arrows when the current selection matches no nodes at
           // all (stepping wraps, so any non-empty selection is navigable).
@@ -166,7 +167,7 @@
             fetch(el.dataset.siteSyncStep + '?' + params.toString(), { credentials: 'same-origin' })
               .then(function (response) { return response.json(); })
               .then(function (data) {
-                prevBtn.disabled = nextBtn.disabled = !data.url;
+                prevBtn.disabled = nextBtn.disabled = randomBtn.disabled = !data.url;
               })
               .catch(function () { /* leave the arrows as they are */ });
           };
@@ -207,6 +208,7 @@
           };
           prevBtn.addEventListener('click', function () { step('prev'); });
           nextBtn.addEventListener('click', function () { step('next'); });
+          randomBtn.addEventListener('click', function () { step('random'); });
         }
 
         // Plain click sends the prod page to the same side-by-side window.

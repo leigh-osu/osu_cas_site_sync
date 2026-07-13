@@ -1,0 +1,4 @@
+services:
+  osu_cas_site_sync.paragraph_map:
+    class: Drupal\osu_cas_site_sync\ParagraphMap
+    arguments: ['@database', '@cache.default']
