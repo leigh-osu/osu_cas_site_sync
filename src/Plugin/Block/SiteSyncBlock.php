@@ -11,6 +11,7 @@ use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\osu_cas_site_sync\ParagraphMap;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -75,9 +76,16 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
   protected $paragraphMap;
 
   /**
+   * The database connection.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
+  protected $database;
+
+  /**
    * Constructs a new SiteSyncBlock.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, RouteMatchInterface $route_match, RequestStack $request_stack, StorageInterface $config_storage, $domain_negotiator, EntityTypeManagerInterface $entity_type_manager, ParagraphMap $paragraph_map) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, RouteMatchInterface $route_match, RequestStack $request_stack, StorageInterface $config_storage, $domain_negotiator, EntityTypeManagerInterface $entity_type_manager, ParagraphMap $paragraph_map, Connection $database) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->routeMatch = $route_match;
     $this->requestStack = $request_stack;
@@ -85,6 +93,7 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
     $this->domainNegotiator = $domain_negotiator;
     $this->entityTypeManager = $entity_type_manager;
     $this->paragraphMap = $paragraph_map;
+    $this->database = $database;
   }
 
   /**
@@ -100,7 +109,8 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
       $container->get('config.storage'),
       $container->has('domain.negotiator') ? $container->get('domain.negotiator') : NULL,
       $container->get('entity_type.manager'),
-      $container->get('osu_cas_site_sync.paragraph_map')
+      $container->get('osu_cas_site_sync.paragraph_map'),
+      $container->get('database')
     );
   }
 
@@ -180,12 +190,19 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
    */
   public function build() {
     $request = $this->requestStack->getCurrentRequest();
-    $url = $this->getProdBaseUrl() . $request->getRequestUri();
-
-    $nid = NULL;
     $node = $this->routeMatch->getParameter('node');
-    if ($node instanceof \Drupal\node\NodeInterface) {
-      $nid = $node->id();
+    $nid = ($node instanceof \Drupal\node\NodeInterface) ? $node->id() : NULL;
+
+    // Profiles were migrated from D7 user accounts, so the D7 counterpart of
+    // a profile node is the user page (/user/<uid>), not this node's path.
+    $prod = $this->getProdBaseUrl();
+    if ($node instanceof \Drupal\node\NodeInterface
+      && $node->bundle() === 'osu_profile'
+      && ($uid = $this->d7UserIdForProfile((int) $node->id()))) {
+      $url = $prod . '/user/' . $uid;
+    }
+    else {
+      $url = $prod . $request->getRequestUri();
     }
 
     $node_types = [];
@@ -242,6 +259,29 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
         'library' => ['osu_cas_site_sync/site_sync'],
       ],
     ];
+  }
+
+  /**
+   * Resolves the D7 uid a profile node was migrated from.
+   *
+   * @param int $nid
+   *   The osu_profile node id.
+   *
+   * @return int|null
+   *   The source D7 uid, or NULL if the migration map is unavailable or has
+   *   no row for this profile.
+   */
+  protected function d7UserIdForProfile(int $nid): ?int {
+    $table = 'migrate_map_upgrade_d7_user_to_profile';
+    if (!$this->database->schema()->tableExists($table)) {
+      return NULL;
+    }
+    $uid = $this->database->select($table, 'm')
+      ->fields('m', ['sourceid1'])
+      ->condition('destid1', $nid)
+      ->execute()
+      ->fetchField();
+    return $uid ? (int) $uid : NULL;
   }
 
   /**
