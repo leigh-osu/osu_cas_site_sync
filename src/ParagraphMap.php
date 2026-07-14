@@ -110,6 +110,10 @@ class ParagraphMap {
     foreach ($this->database->schema()->findTables('migrate_map_%__to__layout_bu%') as $table) {
       $type = preg_replace('/^migrate_map_|__to__layout_bu.*$/', '', $table);
       $type = $aliases[$type] ?? $type;
+      // Split-column paragraphs migrate each column as its own migration
+      // (..._left / _right / _center, or ..._col1-4) but all land in the
+      // same host nodes, so collapse those variants to one base type.
+      $type = preg_replace('/(_left|_right|_center|_col[1-4])$/', '', $type);
       $nids = $map[$type] ?? [];
       foreach ($this->database->query('SELECT destid1 FROM {' . $table . '} WHERE destid1 IS NOT NULL')->fetchCol() as $block_id) {
         if (isset($bid_to_nids[$block_id])) {
