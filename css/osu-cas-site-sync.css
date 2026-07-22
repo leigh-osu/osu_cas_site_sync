@@ -94,10 +94,16 @@
   background-color: #e8e8e3;
 }
 
-/* Vertical rules between the three features (link | sync | slideshow). */
+/* Vertical rules between the features. */
 .osu-cas-site-sync__feature + .osu-cas-site-sync__feature {
   border-left: 3px solid #d73f09; /* OSU orange, match the block edge */
   padding-left: 1.25rem;
+}
+
+/* ...except between View D7 and the Sync toggle, which read as one group. */
+.osu-cas-site-sync__link + .osu-cas-site-sync__toggle {
+  border-left: 0;
+  padding-left: 0;
 }
 
 /* Small screens: one feature per line, breaking exactly at the separators,
@@ -113,6 +119,11 @@
     border-top: 3px solid #d73f09;
     padding-left: 0;
     padding-top: 0.5rem;
+  }
+
+  .osu-cas-site-sync__link + .osu-cas-site-sync__toggle {
+    border-top: 0;
+    padding-top: 0;
   }
 }
 
