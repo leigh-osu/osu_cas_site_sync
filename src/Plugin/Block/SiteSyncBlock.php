@@ -226,12 +226,18 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
     $site_domains = [];
     if ($this->entityTypeManager->hasDefinition('domain')) {
       foreach ($this->entityTypeManager->getStorage('domain')->loadMultiple() as $domain) {
-        // The raw config hostname is the recognisable prod name; the label
-        // is often a long site title.
+        // The raw config hostname is the recognisable prod name; the label is
+        // often a long site title. 'url' is the domain's own URL, used to
+        // switch to that domain's site when it is picked in the dropdown.
         $record = $this->configStorage->read('domain.record.' . $domain->id());
-        $site_domains[$domain->id()] = $record['hostname'] ?? $domain->label();
+        $site_domains[$domain->id()] = [
+          'label' => $record['hostname'] ?? $domain->label(),
+          // The domain's home page (base URL), not the current path -- content
+          // is domain-specific, so the current path would often 404 elsewhere.
+          'url' => $domain->getScheme() . $domain->getHostname() . base_path(),
+        ];
       }
-      asort($site_domains);
+      uasort($site_domains, static fn(array $a, array $b): int => strcasecmp($a['label'], $b['label']));
     }
 
     $site_groups = [];

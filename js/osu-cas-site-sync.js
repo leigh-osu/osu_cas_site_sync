@@ -3,8 +3,9 @@
  * Prod site sync: keeps a named browser window on the production
  * counterpart of the page being viewed locally.
  *
- * The "Sync with Prod" checkbox state persists in localStorage (scoped to
- * this site's origin), so it survives navigation. While enabled, every page
+ * The sync checkbox state and the slideshow selections persist in a cookie
+ * scoped to the registrable domain (e.g. .oregonstate.edu), so they survive
+ * navigation across the domain subdomains. While enabled, every page
  * load re-targets the named window at the new page's prod URL. Browsers only
  * guarantee window.open() outside a user gesture when pop-ups are allowed
  * for the site; when blocked, a hint is shown instead.
@@ -17,6 +18,33 @@
   const SITE_KEY = 'osuCasSiteSync.slideshowSite';
   const SYNCED_KEY = 'osuCasSiteSync.lastSynced';
   const WINDOW_NAME = 'osuCasProdSync';
+
+  /**
+   * Preference storage (sync-enabled, slideshow type/site) via a cookie scoped
+   * to the registrable domain (e.g. .oregonstate.edu) instead of localStorage.
+   * Jumping or stepping to a node on another domain crosses origins, where
+   * localStorage would be empty; a cookie on the shared parent domain keeps the
+   * selections across all the domain subdomains.
+   */
+  function prefCookieDomain() {
+    const parts = window.location.hostname.split('.');
+    return parts.length >= 2 ? '.' + parts.slice(-2).join('.') : window.location.hostname;
+  }
+
+  function getPref(key) {
+    const name = key.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1');
+    const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+
+  function setPref(key, value) {
+    document.cookie = key + '=' + encodeURIComponent(value) +
+      ';path=/;domain=' + prefCookieDomain() + ';max-age=31536000;samesite=lax';
+  }
+
+  function delPref(key) {
+    document.cookie = key + '=;path=/;domain=' + prefCookieDomain() + ';max-age=0;samesite=lax';
+  }
 
   /**
    * Window features for the right half of the current screen, so the prod
@@ -59,7 +87,7 @@
         const hint = el.querySelector('.osu-cas-site-sync__hint');
         const link = el.querySelector('.osu-cas-site-sync__link');
 
-        checkbox.checked = localStorage.getItem(STORAGE_KEY) === '1';
+        checkbox.checked = getPref(STORAGE_KEY) === '1';
 
         // Sync is on: re-target the prod window at this page's counterpart.
         // Skip when the slideshow already pointed the window here within the
@@ -79,7 +107,7 @@
 
         checkbox.addEventListener('change', function () {
           if (checkbox.checked) {
-            localStorage.setItem(STORAGE_KEY, '1');
+            setPref(STORAGE_KEY, '1');
             // User gesture: pop-up blockers allow this open.
             const w = openSyncWindow(url);
             if (w) {
@@ -88,7 +116,7 @@
             }
           }
           else {
-            localStorage.removeItem(STORAGE_KEY);
+            delPref(STORAGE_KEY);
             // Best-effort close of the sync window. An empty URL returns the
             // existing named window without navigating it; if none existed,
             // this opens-and-closes a blank one within the same gesture.
@@ -133,20 +161,20 @@
         const typeSelect = el.querySelector('.osu-cas-site-sync__slideshow-type');
         const siteSelect = el.querySelector('.osu-cas-site-sync__slideshow-site');
         if (typeSelect) {
-          const savedType = localStorage.getItem(TYPE_KEY);
+          const savedType = getPref(TYPE_KEY);
           if (savedType && typeSelect.querySelector('option[value="' + CSS.escape(savedType) + '"]')) {
             typeSelect.value = savedType;
           }
           typeSelect.addEventListener('change', function () {
-            localStorage.setItem(TYPE_KEY, typeSelect.value);
+            setPref(TYPE_KEY, typeSelect.value);
           });
           if (siteSelect) {
-            const savedSite = localStorage.getItem(SITE_KEY);
+            const savedSite = getPref(SITE_KEY);
             if (savedSite && siteSelect.querySelector('option[value="' + CSS.escape(savedSite) + '"]')) {
               siteSelect.value = savedSite;
             }
             siteSelect.addEventListener('change', function () {
-              localStorage.setItem(SITE_KEY, siteSelect.value);
+              setPref(SITE_KEY, siteSelect.value);
             });
           }
 
@@ -194,6 +222,12 @@
                 if (!data.url) {
                   return;
                 }
+                // When filtering by a domain, step onto that domain's host so
+                // the URI changes to the selected domain (content is
+                // domain-specific). data.url is a root-relative alias.
+                const opt = siteSelect ? siteSelect.options[siteSelect.selectedIndex] : null;
+                const domainUrl = opt && opt.dataset ? opt.dataset.domainUrl : '';
+                const dest = domainUrl ? (new URL(domainUrl).origin + data.url) : data.url;
                 if (checkbox.checked) {
                   const prodUrl = new URL(el.dataset.siteSyncUrl).origin + data.url;
                   if (openSyncWindow(prodUrl)) {
@@ -202,13 +236,30 @@
                     sessionStorage.setItem(SYNCED_KEY, prodUrl);
                   }
                 }
-                window.location.assign(data.url);
+                window.location.assign(dest);
               })
               .catch(function () { /* leave the page as-is on failure */ });
           };
           prevBtn.addEventListener('click', function () { step('prev'); });
           nextBtn.addEventListener('click', function () { step('next'); });
           randomBtn.addEventListener('click', function () { step('random'); });
+        }
+
+        // Jump box: press Enter to navigate to the entered node id. Drupal
+        // redirects /node/<nid> to the node's alias; with sync enabled the
+        // destination page's load handler then re-targets the prod window.
+        const jumpInput = el.querySelector('.osu-cas-site-sync__jump-input');
+        if (jumpInput) {
+          jumpInput.addEventListener('keydown', function (event) {
+            if (event.key !== 'Enter') {
+              return;
+            }
+            event.preventDefault();
+            const nid = (jumpInput.value || '').trim();
+            if (/^\d+$/.test(nid) && parseInt(nid, 10) > 0) {
+              window.location.assign('/node/' + nid);
+            }
+          });
         }
 
         // Plain click sends the prod page to the same side-by-side window.

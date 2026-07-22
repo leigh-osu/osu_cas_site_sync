@@ -100,7 +100,9 @@
   padding-left: 1.25rem;
 }
 
-/* ...except between View D7 and the Sync toggle, which read as one group. */
+/* ...except between the NID chip and View D7, and between View D7 and the Sync
+   toggle: these read as one group. */
+.osu-cas-site-sync__nid-copy + .osu-cas-site-sync__link,
 .osu-cas-site-sync__link + .osu-cas-site-sync__toggle {
   border-left: 0;
   padding-left: 0;
@@ -121,6 +123,7 @@
     padding-top: 0.5rem;
   }
 
+  .osu-cas-site-sync__nid-copy + .osu-cas-site-sync__link,
   .osu-cas-site-sync__link + .osu-cas-site-sync__toggle {
     border-top: 0;
     padding-top: 0;
@@ -157,4 +160,11 @@
   opacity: 0.35;
   background-color: #f0f0eb;
   cursor: default;
+}
+
+/* Jump-to-NID box: a plain input, press Enter to jump. */
+.osu-cas-site-sync__jump-input {
+  width: 6rem;
+  padding: 0.1rem 0.25rem;
+  font-size: 0.9em;
 }

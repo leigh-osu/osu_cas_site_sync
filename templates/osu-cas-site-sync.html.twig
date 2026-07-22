@@ -33,8 +33,8 @@
         <option value="affiliates">{{ 'All Affiliates'|t }}</option>
         {% if site_domains %}
           <optgroup label="{{ 'Domains'|t }}">
-            {% for id, label in site_domains %}
-              <option value="domain:{{ id }}">{{ label }}</option>
+            {% for id, info in site_domains %}
+              <option value="domain:{{ id }}" data-domain-url="{{ info.url }}">{{ info.label }}</option>
             {% endfor %}
           </optgroup>
         {% endif %}
@@ -63,6 +63,9 @@
     <button type="button" class="osu-cas-site-sync__slideshow-prev" title="{{ 'Previous node'|t }}" aria-label="{{ 'Previous node'|t }}">&#9664;</button>
     <button type="button" class="osu-cas-site-sync__slideshow-next" title="{{ 'Next node'|t }}" aria-label="{{ 'Next node'|t }}">&#9654;</button>
     <button type="button" class="osu-cas-site-sync__slideshow-random" title="{{ 'Random node'|t }}" aria-label="{{ 'Random node'|t }}">?</button>
+  </span>
+  <span class="osu-cas-site-sync__jump osu-cas-site-sync__feature">
+    <input type="text" inputmode="numeric" class="osu-cas-site-sync__jump-input" placeholder="{{ 'NID ⏎'|t }}" aria-label="{{ 'Jump to node ID'|t }}" />
   </span>
   <span class="osu-cas-site-sync__hint" hidden>
     {{ 'Allow pop-ups for this site so pages can auto-sync.'|t }}
