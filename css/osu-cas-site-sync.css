@@ -1,11 +1,22 @@
 .osu-cas-site-sync {
+  /* Float over the page, pinned to the bottom of the browser window, but
+     contained to the content-area width (matches manzanita $cas-fixed-width)
+     and centred rather than spanning the full viewport. */
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 1320px;
+  margin-inline: auto;
+  z-index: 500;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.25rem 1.25rem;
   padding: 0.75rem 1rem;
   background-color: #f5f5f0;
-  border-left: 3px solid #d73f09; /* OSU orange */
+  border-top: 3px solid #d73f09; /* OSU orange */
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.2);
   font-size: 0.9rem;
 }
 
