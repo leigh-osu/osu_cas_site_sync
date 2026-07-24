@@ -8,6 +8,11 @@
  * - nid: The node ID, when the current page is a node page.
  * - link_text: The text to display for the link.
  * - node_types: Node type labels keyed by machine name, for the slideshow.
+ * - paragraph_types: D7 paragraph migration labels keyed by migration id.
+ * - site_domains: Per domain id, a label plus the "url" (this environment)
+ *   and "prod_url" (production) the slideshow steps onto.
+ * - site_groups: Per group id, the same three keys, taken from the group's
+ *   canonical domain, or from the default domain when it has none.
  * - step_url: The slideshow step route URL.
  */
 #}
@@ -34,14 +39,14 @@
         {% if site_domains %}
           <optgroup label="{{ 'Domains'|t }}">
             {% for id, info in site_domains %}
-              <option value="domain:{{ id }}" data-domain-url="{{ info.url }}">{{ info.label }}</option>
+              <option value="domain:{{ id }}" data-domain-url="{{ info.url }}" data-prod-url="{{ info.prod_url }}">{{ info.label }}</option>
             {% endfor %}
           </optgroup>
         {% endif %}
         {% if site_groups %}
           <optgroup label="{{ 'Groups'|t }}">
-            {% for id, label in site_groups %}
-              <option value="group:{{ id }}" title="{{ label }}">{{ label|length > 20 ? label|slice(0, 20)|trim ~ '…' : label }}</option>
+            {% for id, info in site_groups %}
+              <option value="group:{{ id }}" title="{{ info.label }}" data-domain-url="{{ info.url }}" data-prod-url="{{ info.prod_url }}">{{ info.label|length > 20 ? info.label|slice(0, 20)|trim ~ '…' : info.label }}</option>
             {% endfor %}
           </optgroup>
         {% endif %}

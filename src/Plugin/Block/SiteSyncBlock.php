@@ -5,7 +5,6 @@ namespace Drupal\osu_cas_site_sync\Plugin\Block;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Cache\Cache;
-use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
@@ -14,16 +13,17 @@ use Drupal\Core\Url;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\osu_cas_site_sync\ParagraphMap;
+use Drupal\osu_cas_site_sync\SiteSyncEnvironment;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Links the current page to its counterpart on the production site.
  *
- * The production hostname follows the active domain: the domain negotiator
- * supplies the domain id and the raw (un-overridden) domain.record config
- * supplies the production hostname, so local DDEV hostname overrides in
- * settings never leak into the generated link.
+ * Two hostnames are in play and the environment resolver keeps them apart:
+ * the compare link always points at the active domain's production hostname,
+ * while the site dropdown stays inside the current environment (DDEV, Acquia
+ * dev or Acquia stage), so switching sites does not jump to production.
  *
  * @Block(
  *   id = "osu_cas_site_sync",
@@ -48,18 +48,11 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
   protected $requestStack;
 
   /**
-   * The raw config storage (no runtime overrides).
+   * The environment/hostname resolver.
    *
-   * @var \Drupal\Core\Config\StorageInterface
+   * @var \Drupal\osu_cas_site_sync\SiteSyncEnvironment
    */
-  protected $configStorage;
-
-  /**
-   * The domain negotiator, when the domain module is installed.
-   *
-   * @var \Drupal\domain\DomainNegotiatorInterface|null
-   */
-  protected $domainNegotiator;
+  protected $environment;
 
   /**
    * The entity type manager.
@@ -85,12 +78,11 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
   /**
    * Constructs a new SiteSyncBlock.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, RouteMatchInterface $route_match, RequestStack $request_stack, StorageInterface $config_storage, $domain_negotiator, EntityTypeManagerInterface $entity_type_manager, ParagraphMap $paragraph_map, Connection $database) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, RouteMatchInterface $route_match, RequestStack $request_stack, SiteSyncEnvironment $environment, EntityTypeManagerInterface $entity_type_manager, ParagraphMap $paragraph_map, Connection $database) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->routeMatch = $route_match;
     $this->requestStack = $request_stack;
-    $this->configStorage = $config_storage;
-    $this->domainNegotiator = $domain_negotiator;
+    $this->environment = $environment;
     $this->entityTypeManager = $entity_type_manager;
     $this->paragraphMap = $paragraph_map;
     $this->database = $database;
@@ -106,8 +98,7 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
       $plugin_definition,
       $container->get('current_route_match'),
       $container->get('request_stack'),
-      $container->get('config.storage'),
-      $container->has('domain.negotiator') ? $container->get('domain.negotiator') : NULL,
+      $container->get('osu_cas_site_sync.environment'),
       $container->get('entity_type.manager'),
       $container->get('osu_cas_site_sync.paragraph_map'),
       $container->get('database')
@@ -163,18 +154,8 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
    *   The production base URL, without trailing slash.
    */
   protected function getProdBaseUrl() {
-    if ($this->domainNegotiator && ($domain = $this->domainNegotiator->getActiveDomain())) {
-      // The raw config holds the production hostname; the loaded domain
-      // entity may carry a local-development override (e.g. a ddev. prefix).
-      $record = $this->configStorage->read('domain.record.' . $domain->id());
-      if (!empty($record['hostname'])) {
-        $scheme = $record['scheme'] ?? 'https';
-        // "variable" means "use the negotiated scheme"; prod is https.
-        $scheme = in_array($scheme, ['http', 'https'], TRUE) ? $scheme : 'https';
-        return $scheme . '://' . $record['hostname'];
-      }
-    }
-    return rtrim($this->getConfiguration()['base_url'], '/');
+    return $this->environment->getProductionBaseUrl()
+      ?: rtrim($this->getConfiguration()['base_url'], '/');
   }
 
   /**
@@ -223,29 +204,46 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
       }
     }
 
+    // The production hostname is the recognisable name to label a domain
+    // with (the label is often a long site title), but the URL stays in this
+    // environment so picking a domain switches sites without leaving DDEV /
+    // dev / stage.
     $site_domains = [];
-    if ($this->entityTypeManager->hasDefinition('domain')) {
-      foreach ($this->entityTypeManager->getStorage('domain')->loadMultiple() as $domain) {
-        // The raw config hostname is the recognisable prod name; the label is
-        // often a long site title. 'url' is the domain's own URL, used to
-        // switch to that domain's site when it is picked in the dropdown.
-        $record = $this->configStorage->read('domain.record.' . $domain->id());
-        $site_domains[$domain->id()] = [
-          'label' => $record['hostname'] ?? $domain->label(),
-          // The domain's home page (base URL), not the current path -- content
-          // is domain-specific, so the current path would often 404 elsewhere.
-          'url' => $domain->getScheme() . $domain->getHostname() . base_path(),
-        ];
-      }
-      uasort($site_domains, static fn(array $a, array $b): int => strcasecmp($a['label'], $b['label']));
+    foreach ($this->environment->getDomains() as $id => $info) {
+      $site_domains[$id] = [
+        'label' => $info['production'],
+        // The domain's home page (base URL), not the current path -- content
+        // is domain-specific, so the current path would often 404 elsewhere.
+        'url' => $info['url'],
+        // Where the sync window goes when the slideshow steps onto a node of
+        // this domain: that domain's production site, not this one's.
+        'prod_url' => $info['production_url'],
+      ];
     }
+    uasort($site_domains, static fn(array $a, array $b): int => strcasecmp($a['label'], $b['label']));
 
+    // A group's nodes live on the group's canonical domain
+    // (field_domain_source), so picking a group switches to that domain the
+    // same way picking the domain itself does. Groups with no canonical
+    // domain set fall back to the default domain (agsci).
     $site_groups = [];
     if ($this->entityTypeManager->hasDefinition('group')) {
+      $domains = $this->environment->getDomains();
+      $fallback = $this->environment->getDefaultDomainId();
       foreach ($this->entityTypeManager->getStorage('group')->loadMultiple() as $group) {
-        $site_groups[$group->id()] = $group->label();
+        $canonical = $group->hasField('field_domain_source')
+          ? $group->get('field_domain_source')->target_id
+          : NULL;
+        if (!isset($domains[$canonical])) {
+          $canonical = $fallback;
+        }
+        $site_groups[$group->id()] = [
+          'label' => $group->label(),
+          'url' => $domains[$canonical]['url'] ?? '',
+          'prod_url' => $domains[$canonical]['production_url'] ?? '',
+        ];
       }
-      natcasesort($site_groups);
+      uasort($site_groups, static fn(array $a, array $b): int => strnatcasecmp($a['label'], $b['label']));
     }
 
     return [

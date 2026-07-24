@@ -51,12 +51,42 @@ class SlideshowController extends ControllerBase {
       return new RedirectResponse($request->headers->get('referer') ?: '/');
     }
 
-    $url = $this->entityTypeManager()->getStorage('node')->load($nid)
-      ->toUrl()->toString();
+    $node = $this->entityTypeManager()->getStorage('node')->load($nid);
+    $url = $node->toUrl()->toString();
     if ($as_json) {
-      return new JsonResponse(['url' => $url, 'nid' => $nid]);
+      // The node's own domain, so a selection that spans sites ("All Sites",
+      // "All Affiliates") can send the browser to the host the node actually
+      // renders on instead of 403ing on the current one.
+      return new JsonResponse(['url' => $url, 'nid' => $nid] + $this->nodeDomain($node));
     }
     return new RedirectResponse($url);
+  }
+
+  /**
+   * Resolves the domain a node belongs to.
+   *
+   * @param \Drupal\node\NodeInterface $node
+   *   The node.
+   *
+   * @return array
+   *   "domain_url" (this environment) and "prod_url" (production) for the
+   *   node's canonical domain, falling back to the first domain it is
+   *   assigned to. Both are NULL when no domain can be resolved.
+   */
+  protected function nodeDomain($node): array {
+    $id = NULL;
+    if ($node->hasField('field_domain_source')) {
+      $id = $node->get('field_domain_source')->target_id;
+    }
+    if (!$id && $node->hasField('field_domain_access')) {
+      $ids = array_column($node->get('field_domain_access')->getValue(), 'target_id');
+      $id = reset($ids) ?: NULL;
+    }
+    $domains = \Drupal::service('osu_cas_site_sync.environment')->getDomains();
+    return [
+      'domain_url' => $domains[$id]['url'] ?? NULL,
+      'prod_url' => $domains[$id]['production_url'] ?? NULL,
+    ];
   }
 
   /**
@@ -123,8 +153,15 @@ class SlideshowController extends ControllerBase {
    *   The filtered query, or NULL when the selection can match nothing.
    */
   protected function buildQuery(string $type, string $site) {
+    // No access check: Domain Access scopes node access to the *active*
+    // domain, which would hide every node of every other site and make "All
+    // Sites" mean "this site" (only uid 1, which bypasses node access, saw
+    // the full list). Stepping is cross-domain by design and sends the
+    // browser to the node's own domain, where normal access applies on
+    // arrival. Only published nodes are listed, so this exposes nothing that
+    // is not already public on the site the node belongs to.
     $query = $this->entityTypeManager()->getStorage('node')->getQuery()
-      ->accessCheck(TRUE)
+      ->accessCheck(FALSE)
       ->condition('status', 1);
 
     if (str_starts_with($type, 'd7p:')) {

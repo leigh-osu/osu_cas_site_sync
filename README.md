@@ -9,7 +9,7 @@ navigate.
 
 - **Prod link** — the block shows a link to the current page on production.
   The hostname is domain-aware: the active domain's raw `domain.record`
-  config supplies the production hostname (local hostname overrides, e.g.
+  config supplies the production hostname (environment hostnames, e.g.
   DDEV's, are ignored), and the current request URI (path alias + query
   string) is appended. On node pages the node id is shown for reference.
 - **Sync with Prod** — a checkbox in the block. While checked, every page
@@ -20,9 +20,12 @@ navigate.
 - **Slideshow** — two dropdowns ("All Sites" / "All Affiliates" / a domain / a group, and
   "All Nodes" / a node type) with back/forward buttons. Each press navigates
   the local site to the previous or next node id in the selection
-  (published, access-checked, wrapping at the ends). Domain selections
-  filter strictly by domain assignment (all-affiliates content only appears
-  under "All Sites"); group selections filter by group membership. The
+  (published, wrapping at the ends). Domain selections filter strictly by
+  domain assignment (all-affiliates content only appears under "All Sites");
+  group selections filter by group membership and step onto the group's
+  canonical domain. "All Sites" and "All Affiliates" span domains and step
+  onto each node's own domain, so content that only exists on another site
+  is still reachable. The
   arrows grey out when the selection matches no nodes. The destination is
   resolved before navigating so, with sync enabled, the prod window is
   re-targeted inside the click gesture — no pop-up permission needed for
@@ -38,6 +41,48 @@ navigate.
   are omitted.
 - **Random** — a "?" button after the arrows jumps to a random node within
   the current selection.
+
+## Environments
+
+Domain records store production hostnames, but each environment serves the
+same sites under a derived hostname (see `docroot/sites/sites.php`):
+
+| production            | DDEV                       | Acquia dev                | Acquia stage                |
+|-----------------------|----------------------------|---------------------------|-----------------------------|
+| `bee.oregonstate.edu` | `ddev.bee.oregonstate.edu` | `bee.dev.oregonstate.edu` | `bee.stage.oregonstate.edu` |
+| `barleyworld.org`     | `ddev.barleyworld.org`     | `dev.barleyworld.org`     | `stage.barleyworld.org`     |
+
+`SiteSyncEnvironment` (service `osu_cas_site_sync.environment`) derives those
+hostnames, so the two directions stay separate everywhere:
+
+- **Site links stay in the current environment.** Picking a domain in the
+  slideshow dropdown, and stepping onto a node of another domain, go to that
+  domain's hostname *in this environment* — never to production. A group
+  selection uses the group's canonical domain (`field_domain_source`), or the
+  default domain (agsci) when the group has none.
+- **The compare link always goes to production.** Its origin is the
+  production hostname of whichever domain the destination belongs to, so
+  stepping across domains re-targets the sync window at the right prod site.
+
+The environment is detected from `IS_DDEV_PROJECT` and Acquia's
+`AH_SITE_ENVIRONMENT` (Acquia's `test` is this project's *stage*). Anything
+unrecognised is treated as production, i.e. hostnames are left untouched.
+Force it with `$settings['osu_cas_site_sync_environment'] = 'ddev';` (or
+`dev`, `stage`, `prod`).
+
+Stepping deliberately runs its node query without an access check. Domain
+Access scopes node access to the *active* domain, so an access-checked query
+hid every node belonging to another site — "All Sites" silently meant "this
+site" for everyone except uid 1, which bypasses node access. Only published
+nodes are listed and the browser lands on the node's own domain, where normal
+access applies, so nothing is exposed that is not already public there.
+
+Resolving the active domain goes through the same mapping rather than the
+domain negotiator, which on Acquia dev and stage cannot match the request
+hostname against a production `domain.record` and falls back to the default
+domain. Where an environment overrides the records itself — DDEV does, in
+`settings.local.php` — that override wins, since it is what negotiation
+matches.
 
 Browsers only allow `window.open()` without a user gesture when pop-ups are
 permitted for the site — allow pop-ups on the local site for hands-free

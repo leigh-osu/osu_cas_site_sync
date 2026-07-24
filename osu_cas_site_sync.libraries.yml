@@ -1,5 +1,9 @@
+# No "version:" key on purpose. A declared version makes Drupal serve these
+# files as "?v=<version>" instead of the cache-busting query string it
+# regenerates on every cache rebuild (see JsCollectionRenderer::render()), so
+# a fixed version pins the browser to a stale copy no `drush cr` can shift --
+# which matters for a dev tool edited far more often than it is released.
 site_sync:
-  version: 1.x
   css:
     component:
       css/osu-cas-site-sync.css: {}

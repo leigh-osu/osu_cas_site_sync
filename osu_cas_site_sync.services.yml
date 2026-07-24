@@ -2,3 +2,6 @@ services:
   osu_cas_site_sync.paragraph_map:
     class: Drupal\osu_cas_site_sync\ParagraphMap
     arguments: ['@database', '@cache.default']
+  osu_cas_site_sync.environment:
+    class: Drupal\osu_cas_site_sync\SiteSyncEnvironment
+    arguments: ['@request_stack', '@config.storage', '@entity_type.manager', '@?domain.negotiator']

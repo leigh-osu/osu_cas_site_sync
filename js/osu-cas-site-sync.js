@@ -222,14 +222,21 @@
                 if (!data.url) {
                   return;
                 }
-                // When filtering by a domain, step onto that domain's host so
-                // the URI changes to the selected domain (content is
-                // domain-specific). data.url is a root-relative alias.
+                // Step onto the host the node belongs to, so the URI changes
+                // with it (content is domain-specific). A domain or group
+                // selection names that host on the option -- the user picked
+                // it, so it wins; "All Sites" and "All Affiliates" span sites,
+                // so the node's own domain comes back with the response. Each
+                // pair is this environment's host (ddev/dev/stage) plus the
+                // production one for the sync window. data.url is a
+                // root-relative alias.
                 const opt = siteSelect ? siteSelect.options[siteSelect.selectedIndex] : null;
-                const domainUrl = opt && opt.dataset ? opt.dataset.domainUrl : '';
+                const domainUrl = (opt && opt.dataset && opt.dataset.domainUrl) || data.domain_url;
                 const dest = domainUrl ? (new URL(domainUrl).origin + data.url) : data.url;
                 if (checkbox.checked) {
-                  const prodUrl = new URL(el.dataset.siteSyncUrl).origin + data.url;
+                  const prodBase = (opt && opt.dataset && opt.dataset.prodUrl) ||
+                    data.prod_url || el.dataset.siteSyncUrl;
+                  const prodUrl = new URL(prodBase).origin + data.url;
                   if (openSyncWindow(prodUrl)) {
                     // Tell the destination page's load handler this URL is
                     // already synced so it does not re-open the window.
