@@ -168,3 +168,11 @@
   padding: 0.1rem 0.25rem;
   font-size: 0.9em;
 }
+
+/* The fixed bar covers the bottom of the page; give the footer enough
+   bottom padding that its last line stays readable above the bar. This
+   stylesheet only loads when the sync block renders, so ordinary visitors
+   (no block) get no extra padding. */
+footer[role='contentinfo'] {
+  padding-bottom: 4.5rem;
+}
