@@ -2,21 +2,27 @@
 
 Development helper for the CAS Drupal 7 → 10 migration. Places a block that
 links the page being viewed on the local/dev site to its counterpart on the
-production site, and can keep a dedicated browser window in sync while you
+D7 site, and can keep a dedicated browser window in sync while you
 navigate.
+
+Since the domain cutover the per-domain production hostnames serve the D10
+site; the D7 site sits behind the single `agsci.prod.oregonstate.edu`
+preview hostname. Every sync link therefore targets that one host (the
+block's *D7 sync base URL* setting), regardless of the active D10 domain.
 
 ## What it does
 
-- **Prod link** — the block shows a link to the current page on production.
-  The hostname is domain-aware: the active domain's raw `domain.record`
-  config supplies the production hostname (environment hostnames, e.g.
-  DDEV's, are ignored), and the current request URI (path alias + query
-  string) is appended. On node pages the node id is shown for reference.
-- **Sync with Prod** — a checkbox in the block. While checked, every page
+- **D7 link** — the block shows a link to the current page on the D7 site.
+  Node pages link as `/node/NID`, never by alias: the same alias can exist
+  on several domains, and on the single D7 site it would resolve to
+  whichever node happens to own it. Profile nodes link to the D7 user page
+  (`/user/UID`, via the migrate map); other pages append the request URI.
+  On node pages the node id is shown for reference.
+- **Sync with D7** — a checkbox in the block. While checked, every page
   you visit re-targets a single named browser window (`osuCasProdSync`) at
-  that page's production counterpart, opened on the right half of the screen
+  that page's D7 counterpart, opened on the right half of the screen
   for a side-by-side compare. The state persists per site in localStorage.
-- Clicking the link sends the prod page to the same side-by-side window.
+- Clicking the link sends the D7 page to the same side-by-side window.
 - **Slideshow** — two dropdowns ("All Sites" / "All Affiliates" / a domain / a group, and
   "All Nodes" / a node type) with back/forward buttons. Each press navigates
   the local site to the previous or next node id in the selection
@@ -60,9 +66,10 @@ hostnames, so the two directions stay separate everywhere:
   domain's hostname *in this environment* — never to production. A group
   selection uses the group's canonical domain (`field_domain_source`), or the
   default domain (agsci) when the group has none.
-- **The compare link always goes to production.** Its origin is the
-  production hostname of whichever domain the destination belongs to, so
-  stepping across domains re-targets the sync window at the right prod site.
+- **The compare link always goes to the D7 host.** Its origin is the
+  block's configured D7 sync base URL — the same for every domain — and
+  node pages are addressed there as `/node/NID`, so stepping across domains
+  keeps the sync window on the one D7 site without alias conflicts.
 
 The environment is detected from `IS_DDEV_PROJECT` and Acquia's
 `AH_SITE_ENVIRONMENT` (Acquia's `test` is this project's *stage*). Anything
@@ -95,6 +102,6 @@ syncing; the block shows a hint when the open is blocked.
 3. Grant the *Use the prod site sync block* permission to the roles that
    should see it.
 
-The block's only settings are the link text and a fallback base URL used
-when no active domain can be resolved (e.g. the domain module is not
-installed).
+The block's only settings are the link text and the D7 sync base URL
+(default `https://agsci.prod.oregonstate.edu`) that every sync link
+targets.

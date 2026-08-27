@@ -69,9 +69,10 @@ class SlideshowController extends ControllerBase {
    *   The node.
    *
    * @return array
-   *   "domain_url" (this environment) and "prod_url" (production) for the
-   *   node's canonical domain, falling back to the first domain it is
-   *   assigned to. Both are NULL when no domain can be resolved.
+   *   "domain_url": the node's canonical domain in this environment,
+   *   falling back to the first domain it is assigned to, NULL when no
+   *   domain can be resolved. (The sync window needs no per-domain URL:
+   *   it always goes to the single D7 host, by node id.)
    */
   protected function nodeDomain($node): array {
     $id = NULL;
@@ -85,7 +86,6 @@ class SlideshowController extends ControllerBase {
     $domains = \Drupal::service('osu_cas_site_sync.environment')->getDomains();
     return [
       'domain_url' => $domains[$id]['url'] ?? NULL,
-      'prod_url' => $domains[$id]['production_url'] ?? NULL,
     ];
   }
 

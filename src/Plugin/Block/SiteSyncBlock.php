@@ -18,12 +18,17 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
- * Links the current page to its counterpart on the production site.
+ * Links the current page to its counterpart on the D7 site.
  *
- * Two hostnames are in play and the environment resolver keeps them apart:
- * the compare link always points at the active domain's production hostname,
- * while the site dropdown stays inside the current environment (DDEV, Acquia
- * dev or Acquia stage), so switching sites does not jump to production.
+ * Since the domain cutover the per-domain production hostnames serve this
+ * D10 site, so the compare target is the D7 preview host
+ * (agsci.prod.oregonstate.edu) — one host for every domain, because D7 was
+ * a single site. Node pages are addressed there as /node/NID rather than by
+ * alias: the same alias can exist on several domains, and on the single D7
+ * site it would resolve to whichever node happens to own it.
+ *
+ * The site dropdown, by contrast, stays inside the current environment
+ * (DDEV, Acquia dev or Acquia stage), so switching sites does not leave it.
  *
  * @Block(
  *   id = "osu_cas_site_sync",
@@ -110,7 +115,7 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
    */
   public function defaultConfiguration() {
     return [
-      'base_url' => 'https://agsci.oregonstate.edu',
+      'base_url' => 'https://agsci.prod.oregonstate.edu',
       'link_text' => 'View D7',
     ] + parent::defaultConfiguration();
   }
@@ -123,8 +128,8 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
 
     $form['base_url'] = [
       '#type' => 'url',
-      '#title' => $this->t('Fallback production base URL'),
-      '#description' => $this->t('Used when no active domain can be resolved. The production hostname normally comes from the active domain record, without trailing slash.'),
+      '#title' => $this->t('D7 sync base URL'),
+      '#description' => $this->t('Every sync link points at this host regardless of the active domain (the D7 site is a single site behind one preview hostname). No trailing slash.'),
       '#default_value' => $config['base_url'],
       '#required' => TRUE,
     ];
@@ -148,14 +153,17 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
   }
 
   /**
-   * Resolves the production base URL for the active domain.
+   * Returns the D7 sync base URL.
+   *
+   * One host for every domain: the per-domain production hostnames serve
+   * D10 since the cutover, and the whole D7 site sits behind the single
+   * agsci.prod preview hostname.
    *
    * @return string
-   *   The production base URL, without trailing slash.
+   *   The D7 base URL, without trailing slash.
    */
   protected function getProdBaseUrl() {
-    return $this->environment->getProductionBaseUrl()
-      ?: rtrim($this->getConfiguration()['base_url'], '/');
+    return rtrim($this->getConfiguration()['base_url'], '/');
   }
 
   /**
@@ -182,6 +190,12 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
       && ($uid = $this->d7UserIdForProfile((int) $node->id()))) {
       $url = $prod . '/user/' . $uid;
     }
+    elseif ($nid) {
+      // /node/NID, never the alias: the same alias can exist on several
+      // domains, and on the single D7 site it resolves to whichever node
+      // happens to own it.
+      $url = $prod . '/node/' . $nid;
+    }
     else {
       $url = $prod . $request->getRequestUri();
     }
@@ -207,7 +221,8 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
     // The production hostname is the recognisable name to label a domain
     // with (the label is often a long site title), but the URL stays in this
     // environment so picking a domain switches sites without leaving DDEV /
-    // dev / stage.
+    // dev / stage. The sync window needs no per-domain hostname: it always
+    // goes to the single D7 host, by node id.
     $site_domains = [];
     foreach ($this->environment->getDomains() as $id => $info) {
       $site_domains[$id] = [
@@ -215,9 +230,6 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
         // The domain's home page (base URL), not the current path -- content
         // is domain-specific, so the current path would often 404 elsewhere.
         'url' => $info['url'],
-        // Where the sync window goes when the slideshow steps onto a node of
-        // this domain: that domain's production site, not this one's.
-        'prod_url' => $info['production_url'],
       ];
     }
     uasort($site_domains, static fn(array $a, array $b): int => strcasecmp($a['label'], $b['label']));
@@ -240,7 +252,6 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
         $site_groups[$group->id()] = [
           'label' => $group->label(),
           'url' => $domains[$canonical]['url'] ?? '',
-          'prod_url' => $domains[$canonical]['production_url'] ?? '',
         ];
       }
       uasort($site_groups, static fn(array $a, array $b): int => strnatcasecmp($a['label'], $b['label']));
@@ -249,6 +260,7 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
     return [
       '#theme' => 'osu_cas_site_sync',
       '#url' => $url,
+      '#prod_base' => $prod,
       '#nid' => $nid,
       '#link_text' => $this->getConfiguration()['link_text'],
       '#node_types' => $node_types,

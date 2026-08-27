@@ -13,6 +13,7 @@ function osu_cas_site_sync_theme($existing, $type, $theme, $path) {
     'osu_cas_site_sync' => [
       'variables' => [
         'url' => NULL,
+        'prod_base' => NULL,
         'nid' => NULL,
         'link_text' => NULL,
         'node_types' => [],

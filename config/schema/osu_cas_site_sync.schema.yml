@@ -4,7 +4,7 @@ block.settings.osu_cas_site_sync:
   mapping:
     base_url:
       type: uri
-      label: 'Fallback production base URL'
+      label: 'D7 sync base URL'
     link_text:
       type: label
       label: 'Link text'

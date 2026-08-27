@@ -226,23 +226,21 @@
                 // with it (content is domain-specific). A domain or group
                 // selection names that host on the option -- the user picked
                 // it, so it wins; "All Sites" and "All Affiliates" span sites,
-                // so the node's own domain comes back with the response. Each
-                // pair is this environment's host (ddev/dev/stage) plus the
-                // production one for the sync window. data.url used to be a
-                // root-relative alias, but Domain Source now rewrites node
-                // URLs to absolute canonical-domain URLs -- resolve against a
-                // base instead of concatenating, and take only the path when
-                // re-homing onto the production host.
+                // so the node's own domain comes back with the response.
+                // These hosts stay in this environment (ddev/dev/stage);
+                // data.url used to be a root-relative alias, but Domain
+                // Source now rewrites node URLs to absolute canonical-domain
+                // URLs -- resolve against a base instead of concatenating.
                 const opt = siteSelect ? siteSelect.options[siteSelect.selectedIndex] : null;
                 const domainUrl = (opt && opt.dataset && opt.dataset.domainUrl) || data.domain_url;
                 const dest = domainUrl
                   ? new URL(data.url, new URL(domainUrl).origin).toString()
                   : data.url;
                 if (checkbox.checked) {
-                  const prodBase = (opt && opt.dataset && opt.dataset.prodUrl) ||
-                    data.prod_url || el.dataset.siteSyncUrl;
-                  const local = new URL(data.url, window.location.origin);
-                  const prodUrl = new URL(prodBase).origin + local.pathname + local.search;
+                  // The sync window always goes to the single D7 host, by
+                  // node id -- aliases can collide across domains on the
+                  // one D7 site, and its hostname does not vary per domain.
+                  const prodUrl = el.dataset.siteSyncProdBase + '/node/' + data.nid;
                   if (openSyncWindow(prodUrl)) {
                     // Tell the destination page's load handler this URL is
                     // already synced so it does not re-open the window.

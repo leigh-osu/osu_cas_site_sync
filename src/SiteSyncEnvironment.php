@@ -22,9 +22,10 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * So DDEV prefixes "ddev."; dev/stage insert their token as the second label
  * of an oregonstate.edu hostname and prefix it on any other hostname.
  *
- * The block uses this twice, in opposite directions: site links (the domain
- * dropdown, and the domain the request is on) must stay inside the current
- * environment, while the compare link always points at production.
+ * The block uses this to keep site links (the domain dropdown, and the
+ * domain the request is on) inside the current environment. The compare
+ * link is unrelated: it always points at the single D7 preview host,
+ * configured on the block.
  */
 class SiteSyncEnvironment {
 
@@ -175,7 +176,6 @@ class SiteSyncEnvironment {
    *   - production: the production hostname.
    *   - hostname: the hostname serving this domain in this environment.
    *   - url: the domain's home page in this environment.
-   *   - production_url: the domain's production base URL, no trailing slash.
    */
   public function getDomains(): array {
     if ($this->domains !== NULL) {
@@ -203,7 +203,6 @@ class SiteSyncEnvironment {
         'production' => $production,
         'hostname' => $hostname,
         'url' => $scheme . '://' . $hostname . base_path(),
-        'production_url' => $scheme . '://' . $production,
       ];
     }
 
@@ -252,18 +251,6 @@ class SiteSyncEnvironment {
       return $domain->id();
     }
     return NULL;
-  }
-
-  /**
-   * Returns the production base URL of the domain serving this request.
-   *
-   * @return string|null
-   *   The base URL without trailing slash, or NULL when no domain resolves.
-   */
-  public function getProductionBaseUrl(): ?string {
-    $id = $this->getActiveDomainId();
-    $domains = $this->getDomains();
-    return isset($domains[$id]) ? $domains[$id]['production_url'] : NULL;
   }
 
 }

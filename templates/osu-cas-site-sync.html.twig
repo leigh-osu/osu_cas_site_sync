@@ -4,20 +4,24 @@
  * Default theme implementation for the prod site sync block.
  *
  * Available variables:
- * - url: The full URL to this page's counterpart on the production site.
+ * - url: The full URL to this page's counterpart on the D7 site
+ *   (/node/NID on node pages).
+ * - prod_base: The D7 sync base URL, the same for every domain, no
+ *   trailing slash.
  * - nid: The node ID, when the current page is a node page.
  * - link_text: The text to display for the link.
  * - node_types: Node type labels keyed by machine name, for the slideshow.
  * - paragraph_types: D7 paragraph migration labels keyed by migration id.
  * - site_domains: Per domain id, a label plus the "url" (this environment)
- *   and "prod_url" (production) the slideshow steps onto.
- * - site_groups: Per group id, the same three keys, taken from the group's
+ *   the slideshow steps onto.
+ * - site_groups: Per group id, the same keys, taken from the group's
  *   canonical domain, or from the default domain when it has none.
  * - step_url: The slideshow step route URL.
  */
 #}
 <div class="osu-cas-site-sync"
      data-site-sync-url="{{ url }}"
+     data-site-sync-prod-base="{{ prod_base }}"
      data-site-sync-step="{{ step_url }}"
      data-site-sync-nid="{{ nid }}">
   {% if nid %}
@@ -39,14 +43,14 @@
         {% if site_domains %}
           <optgroup label="{{ 'Domains'|t }}">
             {% for id, info in site_domains %}
-              <option value="domain:{{ id }}" data-domain-url="{{ info.url }}" data-prod-url="{{ info.prod_url }}">{{ info.label }}</option>
+              <option value="domain:{{ id }}" data-domain-url="{{ info.url }}">{{ info.label }}</option>
             {% endfor %}
           </optgroup>
         {% endif %}
         {% if site_groups %}
           <optgroup label="{{ 'Groups'|t }}">
             {% for id, info in site_groups %}
-              <option value="group:{{ id }}" title="{{ info.label }}" data-domain-url="{{ info.url }}" data-prod-url="{{ info.prod_url }}">{{ info.label|length > 20 ? info.label|slice(0, 20)|trim ~ '…' : info.label }}</option>
+              <option value="group:{{ id }}" title="{{ info.label }}" data-domain-url="{{ info.url }}">{{ info.label|length > 20 ? info.label|slice(0, 20)|trim ~ '…' : info.label }}</option>
             {% endfor %}
           </optgroup>
         {% endif %}
