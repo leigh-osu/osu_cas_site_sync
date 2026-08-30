@@ -39,6 +39,22 @@ use Symfony\Component\HttpFoundation\RequestStack;
 class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface {
 
   /**
+   * The MMI domain id: its content syncs against the mmi D7 site.
+   */
+  const MMI_DOMAIN_ID = 'mmi_oregonstate_edu';
+
+  /**
+   * The mmi D7 site's base URL (its production hostname until cutover).
+   */
+  const MMI_D7_BASE_URL = 'https://mmi.oregonstate.edu';
+
+  /**
+   * The MMI migration's nid offset (MmiNidOffset::OFFSET, without the
+   * module dependency).
+   */
+  const MMI_NID_OFFSET = 400000;
+
+  /**
    * The current route match.
    *
    * @var \Drupal\Core\Routing\RouteMatchInterface
@@ -185,16 +201,28 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
     // Profiles were migrated from D7 user accounts, so the D7 counterpart of
     // a profile node is the user page (/user/<uid>), not this node's path.
     $prod = $this->getProdBaseUrl();
+    $is_mmi = $node instanceof \Drupal\node\NodeInterface
+      ? $this->nodeIsMmi($node)
+      : $this->environment->getActiveDomainId() === self::MMI_DOMAIN_ID;
+    if ($is_mmi) {
+      // MMI content came from the separate mmi D7 site, which still serves
+      // its production hostname until that domain's cutover.
+      $prod = self::MMI_D7_BASE_URL;
+    }
     if ($node instanceof \Drupal\node\NodeInterface
       && $node->bundle() === 'osu_profile'
-      && ($uid = $this->d7UserIdForProfile((int) $node->id()))) {
+      && ($uid = $is_mmi
+        ? $this->mmiD7UserIdForProfile((int) $node->id())
+        : $this->d7UserIdForProfile((int) $node->id()))) {
       $url = $prod . '/user/' . $uid;
     }
     elseif ($nid) {
       // /node/NID, never the alias: the same alias can exist on several
       // domains, and on the single D7 site it resolves to whichever node
-      // happens to own it.
-      $url = $prod . '/node/' . $nid;
+      // happens to own it. MMI nids carry the migration's +400000 offset
+      // (profile nodes are auto-assigned below it and never hit this: they
+      // resolve to /user/<uid> above); the D7 site knows the original.
+      $url = $prod . '/node/' . ($is_mmi && $nid >= self::MMI_NID_OFFSET ? $nid - self::MMI_NID_OFFSET : $nid);
     }
     else {
       $url = $prod . $request->getRequestUri();
@@ -275,6 +303,34 @@ class SiteSyncBlock extends BlockBase implements ContainerFactoryPluginInterface
         'library' => ['osu_cas_site_sync/site_sync'],
       ],
     ];
+  }
+
+  /**
+   * Whether a node belongs to the MMI domain.
+   *
+   * MMI content was migrated from its own D7 site (not the agsci one), so
+   * its sync links must point there. The canonical domain is the signal:
+   * every MMI-migrated node sets field_domain_source to the mmi domain.
+   */
+  protected function nodeIsMmi(\Drupal\node\NodeInterface $node): bool {
+    return $node->hasField('field_domain_source')
+      && $node->get('field_domain_source')->target_id === self::MMI_DOMAIN_ID;
+  }
+
+  /**
+   * Resolves the mmi D7 uid an MMI profile node was migrated from.
+   */
+  protected function mmiD7UserIdForProfile(int $nid): ?int {
+    $table = 'migrate_map_mmi_profiles';
+    if (!$this->database->schema()->tableExists($table)) {
+      return NULL;
+    }
+    $uid = $this->database->select($table, 'm')
+      ->fields('m', ['sourceid1'])
+      ->condition('destid1', $nid)
+      ->execute()
+      ->fetchField();
+    return $uid ? (int) $uid : NULL;
   }
 
   /**
